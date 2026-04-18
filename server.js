@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
 const { Resend } = require("resend");
 
 const app = express();
@@ -124,9 +125,13 @@ app.post("/api/contacts", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`Email service: ${resend ? "ENABLED" : "DISABLED"}`);
-  console.log(`From: ${senderEmail}`);
-  console.log(`To: ${adminEmail}`);
-});
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Email service: ${resend ? "ENABLED" : "DISABLED"}`);
+    console.log(`From: ${senderEmail}`);
+    console.log(`To: ${adminEmail}`);
+  });
+}
+
+module.exports = app;
