@@ -537,15 +537,20 @@
       // Use the download endpoint
       const downloadUrl = '/download/' + filename;
       
+      console.log('Starting download:', downloadUrl);
+      
       // Fetch the PDF file as a blob
       fetch(downloadUrl)
         .then(response => {
+          console.log('Response status:', response.status);
           if (!response.ok) {
-            throw new Error('Download failed: ' + response.statusText);
+            throw new Error('Download failed: ' + response.statusText + ' (' + response.status + ')');
           }
           return response.blob();
         })
         .then(blob => {
+          console.log('Blob received, size:', blob.size);
+          
           // Create blob URL
           const blobUrl = window.URL.createObjectURL(blob);
           
@@ -557,6 +562,8 @@
           link.click();
           document.body.removeChild(link);
           
+          console.log('Download triggered for:', filename);
+          
           // Clean up blob URL after a delay
           setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
@@ -564,7 +571,7 @@
         })
         .catch(err => {
           console.error('Download error:', err);
-          statusEl.textContent = 'Failed to download PDF. Please try again.';
+          statusEl.textContent = 'Failed to download PDF: ' + err.message;
         });
     }
   </script>

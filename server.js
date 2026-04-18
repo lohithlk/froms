@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const { Resend } = require("resend");
 
 const app = express();
@@ -47,16 +48,26 @@ app.get('/download/:filename', (req, res) => {
   
   const filepath = path.join(__dirname, filename);
   
-  try {
-    res.download(filepath, filename, (err) => {
-      if (err) {
-        console.error('Download error:', err);
-      }
-    });
-  } catch (err) {
-    console.error('File access error:', err);
-    res.status(404).json({ message: 'File not found' });
+  // Check if file exists
+  if (!fs.existsSync(filepath)) {
+    console.error('File not found:', filepath);
+    return res.status(404).json({ message: 'PDF file not found' });
   }
+  
+  // Read and send file
+  fs.readFile(filepath, (err, data) => {
+    if (err) {
+      console.error('File read error:', err);
+      return res.status(500).json({ message: 'Failed to read file' });
+    }
+    
+    // Set proper headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', data.length);
+    
+    res.send(data);
+  });
 });
 
 async function sendNotificationEmail(row) {
