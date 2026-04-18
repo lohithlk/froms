@@ -36,6 +36,18 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+// Serve PDF files with proper headers
+app.get('/*.pdf', (req, res) => {
+  const filename = req.path.substring(1); // Remove leading slash
+  const filepath = __dirname + '/' + filename;
+  res.download(filepath, filename, (err) => {
+    if (err) {
+      console.error('Download error:', err);
+      res.status(404).json({ message: 'File not found' });
+    }
+  });
+});
+
 async function sendNotificationEmail(row) {
   if (!resend || !adminEmail) {
     throw new Error("Email service not configured. Check RESEND_API_KEY and ADMIN_EMAIL in .env");
