@@ -531,12 +531,34 @@
     }
 
     function triggerDownload(path) {
-      const link = document.createElement("a");
-      link.href = path;
-      link.setAttribute("download", "");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // Extract filename from path
+      const filename = path.split('/').pop();
+      
+      // Fetch the PDF file as a blob
+      fetch(path)
+        .then(response => {
+          if (!response.ok) throw new Error('Download failed');
+          return response.blob();
+        })
+        .then(blob => {
+          // Create blob URL
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Create and trigger download link
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up blob URL
+          window.URL.revokeObjectURL(blobUrl);
+        })
+        .catch(err => {
+          console.error('Download error:', err);
+          statusEl.textContent = 'Failed to download PDF. Please try again.';
+        });
     }
   </script>
 </body>
