@@ -534,10 +534,15 @@
       // Extract filename from path
       const filename = path.split('/').pop();
       
+      // Use the download endpoint
+      const downloadUrl = '/download/' + filename;
+      
       // Fetch the PDF file as a blob
-      fetch(path)
+      fetch(downloadUrl)
         .then(response => {
-          if (!response.ok) throw new Error('Download failed');
+          if (!response.ok) {
+            throw new Error('Download failed: ' + response.statusText);
+          }
           return response.blob();
         })
         .then(blob => {
@@ -552,8 +557,10 @@
           link.click();
           document.body.removeChild(link);
           
-          // Clean up blob URL
-          window.URL.revokeObjectURL(blobUrl);
+          // Clean up blob URL after a delay
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 100);
         })
         .catch(err => {
           console.error('Download error:', err);

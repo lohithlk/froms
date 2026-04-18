@@ -36,6 +36,29 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+// Serve PDF downloads with proper headers
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  
+  // Validate filename to prevent path traversal attacks
+  if (!filename.match(/^[a-z0-9\-]+\.pdf$/i)) {
+    return res.status(400).json({ message: 'Invalid filename' });
+  }
+  
+  const filepath = path.join(__dirname, filename);
+  
+  try {
+    res.download(filepath, filename, (err) => {
+      if (err) {
+        console.error('Download error:', err);
+      }
+    });
+  } catch (err) {
+    console.error('File access error:', err);
+    res.status(404).json({ message: 'File not found' });
+  }
+});
+
 async function sendNotificationEmail(row) {
   if (!resend || !adminEmail) {
     throw new Error("Email service not configured. Check RESEND_API_KEY and ADMIN_EMAIL in .env");
