@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
 const { Resend } = require("resend");
 
 const app = express();
@@ -11,8 +12,24 @@ const adminEmail = process.env.ADMIN_EMAIL || "";
 const senderEmail = process.env.SENDER_EMAIL || "noreply@acceluav.com";
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+// Set correct MIME type for CSS
+app.use((req, res, next) => {
+  if (req.path.endsWith('.css')) {
+    res.type('text/css');
+  } else if (req.path.endsWith('.js')) {
+    res.type('application/javascript');
+  }
+  next();
+});
+
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, { 
+  setHeaders: (res, path) => {
+    if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    }
+  }
+}));
 
 // Serve index.html for root path
 app.get('/', (req, res) => {
