@@ -3,7 +3,16 @@
   "builds": [
     {
       "src": "server.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "acceluav-flyers.pdf",
+          "acceluav-profile.pdf",
+          "index.html",
+          "styles.css",
+          "script.js"
+        ]
+      }
     }
   ],
   "routes": [

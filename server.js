@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const { Resend } = require("resend");
 
@@ -49,8 +50,14 @@ app.get("/download/:filename", (req, res) => {
     return res.status(404).json({ message: "Brochure not found." });
   }
 
+  if (!fs.existsSync(filePath)) {
+    console.error(`Download file missing in runtime: ${filePath}`);
+    return res.status(404).json({ message: "Brochure file is not available on server." });
+  }
+
   return res.download(filePath, safeFileName, (error) => {
     if (error && !res.headersSent) {
+      console.error("Download start failed:", error.message);
       return res.status(500).json({ message: "Failed to start download." });
     }
     return undefined;
