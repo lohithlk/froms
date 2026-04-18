@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brochure Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-shape bg-shape-a"></div>
+  <div class="bg-shape bg-shape-b"></div>
+
+  <main class="container">
+    <section class="hero">
+      <p class="eyebrow">Welcome</p>
+      <h1>Accel UAV Brochure Download</h1>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Brochures</h2>
+        <p>Select one to preview and download.</p>
+      </div>
+
+      <div class="brochure-grid">
+        <article class="card">
+          <h3>AccelUAV Flyers</h3>
+          <div class="card-actions">
+            <button class="btn btn-primary" data-file="AccelUAV%20flyers%20%20(1).pdf" data-title="AccelUAV Flyers PDF">Get Brochure</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>AccelUAV Profile</h3>
+          <div class="card-actions">
+            <button class="btn btn-primary" data-file="AccelUAV%20Profile%20(2).pdf" data-title="AccelUAV Profile PDF">Get Brochure</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="leadDialog">
+    <div class="dialog-head">
+      <h3 id="formTitle">Contact Form</h3>
+      <button id="closeForm" class="icon-btn" aria-label="Close">x</button>
+    </div>
+    <form id="leadForm" class="popup-form" novalidate>
+      <div class="grid">
+        <label>
+          Full Name
+          <input type="text" name="fullName" placeholder="Your full name" required />
+        </label>
+
+        <label>
+          Company Name
+          <input type="text" name="companyName" placeholder="Your company name" required />
+        </label>
+
+        <label>
+          Email
+          <input type="email" name="email" placeholder="you@example.com" required />
+        </label>
+
+        <label>
+          Phone
+          <input type="tel" name="phone" placeholder="+1 555 123 4567" required />
+        </label>
+
+        <label>
+          Selected Brochure
+          <input id="selectedBrochureLabel" type="text" readonly />
+        </label>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" name="consent" required />
+        I agree to be contacted regarding this brochure.
+      </label>
+
+      <div class="dialog-actions">
+        <button type="submit" class="btn btn-primary">Submit and Download</button>
+        <button type="button" id="cancelForm" class="btn btn-ghost">Cancel</button>
+      </div>
+      <p id="formStatus" class="status" aria-live="polite"></p>
+    </form>
+    <div class="dialog-actions compact-note">
+      <p class="muted-note">Download starts automatically after successful submit.</p>
+    </div>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
