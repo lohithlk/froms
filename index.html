@@ -491,14 +491,22 @@
           } catch (error) {
             // Keep default message if response body is not JSON.
           }
-          statusEl.textContent = serverMessage;
+          statusEl.textContent = `Download is starting, but we could not save contact details: ${serverMessage}`;
+          triggerDownload(pendingDownloadPath);
+          form.reset();
+          pendingDownloadPath = "";
+          setTimeout(() => dialog.close(), 450);
           return;
         }
 
         statusEl.textContent = "Submitted successfully. Download is starting...";
         triggerDownload(pendingDownloadPath);
       } catch (error) {
-        statusEl.textContent = "Server not reachable. Please run the app server.";
+        statusEl.textContent = "Download is starting, but contact submission failed.";
+        triggerDownload(pendingDownloadPath);
+        form.reset();
+        pendingDownloadPath = "";
+        setTimeout(() => dialog.close(), 450);
         return;
       }
 
@@ -537,12 +545,8 @@
         return;
       }
 
-      const frame = document.createElement("iframe");
-      frame.style.display = "none";
-      frame.src = `/download/${encodeURIComponent(fileName)}`;
-      document.body.appendChild(frame);
-
-      setTimeout(() => frame.remove(), 60000);
+      const downloadUrl = `/download/${encodeURIComponent(fileName)}`;
+      window.location.assign(downloadUrl);
     }
   </script>
 </body>
