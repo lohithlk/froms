@@ -531,45 +531,18 @@
     }
 
     function triggerDownload(path) {
-      // Extract filename from path
-      const filename = path.split('/').pop();
-      
-      console.log('Starting download:', filename);
-      
-      // Fetch directly from the static middleware (not /download endpoint)
-      fetch('/' + filename)
-        .then(response => {
-          console.log('Response status:', response.status);
-          if (!response.ok) {
-            throw new Error('Download failed: ' + response.statusText + ' (' + response.status + ')');
-          }
-          return response.blob();
-        })
-        .then(blob => {
-          console.log('Blob received, size:', blob.size);
-          
-          // Create blob URL
-          const blobUrl = window.URL.createObjectURL(blob);
-          
-          // Create and trigger download link
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          console.log('Download triggered for:', filename);
-          
-          // Clean up blob URL after a delay
-          setTimeout(() => {
-            window.URL.revokeObjectURL(blobUrl);
-          }, 100);
-        })
-        .catch(err => {
-          console.error('Download error:', err);
-          statusEl.textContent = 'Failed to download PDF: ' + err.message;
-        });
+      const fileName = String(path || "").trim();
+      if (!fileName) {
+        statusEl.textContent = "No brochure selected.";
+        return;
+      }
+
+      const frame = document.createElement("iframe");
+      frame.style.display = "none";
+      frame.src = `/download/${encodeURIComponent(fileName)}`;
+      document.body.appendChild(frame);
+
+      setTimeout(() => frame.remove(), 60000);
     }
   </script>
 </body>

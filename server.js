@@ -10,6 +10,10 @@ const resendApiKey = process.env.RESEND_API_KEY || "";
 const adminEmail = process.env.ADMIN_EMAIL || "";
 const senderEmail = process.env.SENDER_EMAIL || "noreply@acceluav.com";
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const allowedDownloads = new Map([
+  ["acceluav-flyers.pdf", path.join(__dirname, "acceluav-flyers.pdf")],
+  ["acceluav-profile.pdf", path.join(__dirname, "acceluav-profile.pdf")],
+]);
 
 // Set correct MIME type for CSS
 app.use((req, res, next) => {
@@ -33,6 +37,23 @@ app.use(express.static(__dirname, {
 // Serve index.html for root path
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
+});
+
+app.get("/download/:filename", (req, res) => {
+  const requestedName = String(req.params.filename || "");
+  const safeFileName = path.basename(requestedName);
+  const filePath = allowedDownloads.get(safeFileName);
+
+  if (!filePath) {
+    return res.status(404).json({ message: "Brochure not found." });
+  }
+
+  return res.download(filePath, safeFileName, (error) => {
+    if (error && !res.headersSent) {
+      return res.status(500).json({ message: "Failed to start download." });
+    }
+    return undefined;
+  });
 });
 
 async function sendNotificationEmail(row) {

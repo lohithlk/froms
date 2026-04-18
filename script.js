@@ -105,10 +105,16 @@ function closeDialog() {
 }
 
 function triggerDownload(path) {
-  const link = document.createElement("a");
-  link.href = path;
-  link.setAttribute("download", "");
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  const fileName = String(path || "").trim();
+  if (!fileName) {
+    statusEl.textContent = "No brochure selected.";
+    return;
+  }
+
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  frame.src = `/download/${encodeURIComponent(fileName)}`;
+  document.body.appendChild(frame);
+
+  setTimeout(() => frame.remove(), 60000);
 }
