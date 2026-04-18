@@ -534,13 +534,10 @@
       // Extract filename from path
       const filename = path.split('/').pop();
       
-      // Use the download endpoint
-      const downloadUrl = '/download/' + filename;
+      console.log('Starting download:', filename);
       
-      console.log('Starting download:', downloadUrl);
-      
-      // Fetch the PDF file as a blob
-      fetch(downloadUrl)
+      // Fetch directly from the static middleware (not /download endpoint)
+      fetch('/' + filename)
         .then(response => {
           console.log('Response status:', response.status);
           if (!response.ok) {

@@ -1,8 +1,6 @@
 require("dotenv").config();
 
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 const { Resend } = require("resend");
 
 const app = express();
@@ -35,39 +33,6 @@ app.use(express.static(__dirname, {
 // Serve index.html for root path
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
-});
-
-// Serve PDF downloads with proper headers
-app.get('/download/:filename', (req, res) => {
-  const filename = req.params.filename;
-  
-  // Validate filename to prevent path traversal attacks
-  if (!filename.match(/^[a-z0-9\-]+\.pdf$/i)) {
-    return res.status(400).json({ message: 'Invalid filename' });
-  }
-  
-  const filepath = path.join(__dirname, filename);
-  
-  // Check if file exists
-  if (!fs.existsSync(filepath)) {
-    console.error('File not found:', filepath);
-    return res.status(404).json({ message: 'PDF file not found' });
-  }
-  
-  // Read and send file
-  fs.readFile(filepath, (err, data) => {
-    if (err) {
-      console.error('File read error:', err);
-      return res.status(500).json({ message: 'Failed to read file' });
-    }
-    
-    // Set proper headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', data.length);
-    
-    res.send(data);
-  });
 });
 
 async function sendNotificationEmail(row) {

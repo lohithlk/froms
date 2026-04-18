@@ -8,11 +8,15 @@
   ],
   "routes": [
     {
+      "src": "^/([a-z0-9\\-]+\\.pdf)$",
+      "dest": "server.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "server.js"
     },
     {
-      "src": "/.*",
+      "src": "/(.*)",
       "dest": "server.js"
     }
   ]
