@@ -15,10 +15,5 @@
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ],
-  "env": {
-    "RESEND_API_KEY": "@resend_api_key",
-    "ADMIN_EMAIL": "@admin_email",
-    "SENDER_EMAIL": "@sender_email"
-  }
+  ]
 }
