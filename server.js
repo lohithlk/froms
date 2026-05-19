@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const crypto = require("crypto");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -12,33 +13,119 @@ const resendApiKey = process.env.RESEND_API_KEY || "";
 const adminEmail = process.env.ADMIN_EMAIL || "";
 const senderEmail = process.env.SENDER_EMAIL || "noreply@acceluav.com";
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const brochureAccessCookieName = "brochure_access";
+const brochureAccessMaxAgeMs = 1000 * 60 * 60 * 24 * 365;
+const brochureAccessSecret =
+  process.env.BROCHURE_ACCESS_SECRET || "acceluav-brochure-access-secret";
 const allowedDownloads = new Map([
   ["acceluav-flyers.pdf", path.join(__dirname, "acceluav-flyers.pdf")],
   ["acceluav-profile.pdf", path.join(__dirname, "acceluav-profile.pdf")],
 ]);
 
-// Set correct MIME type for CSS
-app.use((req, res, next) => {
-  if (req.path.endsWith('.css')) {
-    res.type('text/css');
-  } else if (req.path.endsWith('.js')) {
-    res.type('application/javascript');
+function createBrochureAccessToken() {
+  const payload = Buffer.from(
+    JSON.stringify({
+      exp: Date.now() + brochureAccessMaxAgeMs,
+    }),
+    "utf8",
+  ).toString("base64url");
+
+  const signature = crypto
+    .createHmac("sha256", brochureAccessSecret)
+    .update(payload)
+    .digest("base64url");
+
+  return `${payload}.${signature}`;
+}
+
+function parseCookieHeader(cookieHeader = "") {
+  return cookieHeader
+    .split(";")
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .reduce((cookies, pair) => {
+      const separatorIndex = pair.indexOf("=");
+      if (separatorIndex === -1) {
+        return cookies;
+      }
+
+      const key = pair.slice(0, separatorIndex).trim();
+      const value = pair.slice(separatorIndex + 1).trim();
+      cookies[key] = decodeURIComponent(value);
+      return cookies;
+    }, {});
+}
+
+function verifyBrochureAccessToken(token) {
+  if (!token || !token.includes(".")) {
+    return false;
   }
-  next();
-});
+
+  const [payload, providedSignature] = token.split(".");
+  const expectedSignature = crypto
+    .createHmac("sha256", brochureAccessSecret)
+    .update(payload)
+    .digest("base64url");
+
+  const providedBuffer = Buffer.from(providedSignature, "utf8");
+  const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+
+  if (
+    providedBuffer.length !== expectedBuffer.length ||
+    !crypto.timingSafeEqual(providedBuffer, expectedBuffer)
+  ) {
+    return false;
+  }
+
+  try {
+    const decodedPayload = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    );
+
+    return Number(decodedPayload.exp) > Date.now();
+  } catch (error) {
+    return false;
+  }
+}
+
+function hasBrochureAccess(req) {
+  const cookies = parseCookieHeader(req.headers.cookie || "");
+  return verifyBrochureAccessToken(cookies[brochureAccessCookieName]);
+}
+
+function grantBrochureAccess(res) {
+  res.cookie(brochureAccessCookieName, createBrochureAccessToken(), {
+    httpOnly: true,
+    maxAge: brochureAccessMaxAgeMs,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
 
 app.use(express.json());
-app.use(express.static(__dirname, { 
-  setHeaders: (res, path) => {
-    if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    }
-  }
-}));
 
-// Serve index.html for root path
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
+});
+
+app.get("/index.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/styles.css", (req, res) => {
+  res.sendFile(path.join(__dirname, "styles.css"));
+});
+
+app.get("/script.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "script.js"));
+});
+
+app.use("/brochures", express.static(path.join(__dirname, "brochures")));
+
+app.get("/api/brochure-access", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ granted: hasBrochureAccess(req) });
 });
 
 app.get("/download/:filename", (req, res) => {
@@ -48,6 +135,12 @@ app.get("/download/:filename", (req, res) => {
 
   if (!filePath) {
     return res.status(404).json({ message: "Brochure not found." });
+  }
+
+  if (!hasBrochureAccess(req)) {
+    return res.status(403).json({
+      message: "Please fill out the form once to unlock brochure downloads.",
+    });
   }
 
   if (!fs.existsSync(filePath)) {
@@ -118,14 +211,22 @@ app.post("/api/contacts", async (req, res) => {
       "Brochure Downloaded": brochureTitle || fallbackBrochure,
     };
 
+    let warning = "";
+
     try {
       await sendNotificationEmail(row);
       console.log(`Email notification sent for ${fullName}`);
-      return res.json({ message: "Contact saved and email sent." });
     } catch (emailError) {
       console.error("Email send failed:", emailError.message);
-      return res.status(500).json({ message: `Email error: ${emailError.message}` });
+      warning = `Notification email issue: ${emailError.message}`;
     }
+
+    grantBrochureAccess(res);
+
+    return res.json({
+      message: "Thanks. Your brochure access is unlocked.",
+      warning,
+    });
   } catch (error) {
     console.error("Contact submission failed:", error.message);
     return res.status(500).json({ message: "Failed to process contact." });

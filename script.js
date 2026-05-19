@@ -5,21 +5,25 @@ const formTitle = document.getElementById("formTitle");
 const selectedBrochureLabel = document.getElementById("selectedBrochureLabel");
 const closeForm = document.getElementById("closeForm");
 const cancelForm = document.getElementById("cancelForm");
+const allBrochureDownloads = [
+  "acceluav-flyers.pdf",
+  "acceluav-profile.pdf",
+];
+const allBrochureLabel = "AccelUAV Flyers + AccelUAV Profile";
 
 let pendingDownloadPath = "";
 
 document.querySelectorAll("[data-file]").forEach((button) => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     pendingDownloadPath = button.getAttribute("data-file") || "";
-    const title = button.getAttribute("data-title") || "Selected Brochure";
 
-    formTitle.textContent = `Contact Form - ${title}`;
-    selectedBrochureLabel.value = title;
-    statusEl.textContent = "";
-
-    if (!dialog.open) {
-      dialog.showModal();
+    const hasAccess = await checkBrochureAccess();
+    if (hasAccess) {
+      triggerDownload(pendingDownloadPath);
+      return;
     }
+
+    openDialogForBrochure();
   });
 });
 
@@ -31,19 +35,14 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!pendingDownloadPath) {
-    statusEl.textContent = "Please select a brochure first.";
-    return;
-  }
-
   const data = new FormData(form);
   const payload = {
     fullName: data.get("fullName"),
     companyName: data.get("companyName"),
     email: data.get("email"),
     phone: data.get("phone"),
-    brochureTitle: selectedBrochureLabel.value,
-    brochureFile: pendingDownloadPath,
+    brochureTitle: allBrochureLabel,
+    brochureFile: "all-brochures",
   };
 
   try {
@@ -55,36 +54,29 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
 
+    let body = {};
+    try {
+      body = await response.json();
+    } catch (error) {
+      body = {};
+    }
+
     if (!response.ok) {
-      let serverMessage = "Unable to save details. Please try again.";
-      try {
-        const body = await response.json();
-        if (body && body.message) {
-          serverMessage = body.message;
-        }
-      } catch (error) {
-        // Keep default message if response body is not JSON.
-      }
-      statusEl.textContent = `Download is starting, but we could not save contact details: ${serverMessage}`;
-      triggerDownload(pendingDownloadPath);
-      form.reset();
-      pendingDownloadPath = "";
-      setTimeout(() => dialog.close(), 450);
+      statusEl.textContent =
+        body.message || "We could not unlock brochure downloads. Please try again.";
       return;
     }
 
-    statusEl.textContent = "Submitted successfully. Download is starting...";
-    triggerDownload(pendingDownloadPath);
+    const serverMessage = body.message || "Thanks. Your brochure access is unlocked.";
+    statusEl.textContent = `${serverMessage} Both downloads are starting...`;
+    triggerDownloads(allBrochureDownloads);
   } catch (error) {
-    statusEl.textContent = "Download is starting, but contact submission failed.";
-    triggerDownload(pendingDownloadPath);
-    form.reset();
-    pendingDownloadPath = "";
-    setTimeout(() => dialog.close(), 450);
+    statusEl.textContent = "We could not unlock brochure downloads. Please try again.";
     return;
   }
 
   form.reset();
+  selectedBrochureLabel.value = "";
   pendingDownloadPath = "";
   setTimeout(() => dialog.close(), 450);
 });
@@ -108,8 +100,38 @@ dialog.addEventListener("click", (event) => {
 function closeDialog() {
   form.reset();
   statusEl.textContent = "";
+  selectedBrochureLabel.value = "";
   pendingDownloadPath = "";
-  dialog.close();
+  if (dialog.open) {
+    dialog.close();
+  }
+}
+
+function openDialogForBrochure() {
+  formTitle.textContent = "Contact Form - Download Both Brochures";
+  selectedBrochureLabel.value = allBrochureLabel;
+  statusEl.textContent = "";
+
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+}
+
+async function checkBrochureAccess() {
+  try {
+    const response = await fetch("/api/brochure-access", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const body = await response.json();
+    return Boolean(body.granted);
+  } catch (error) {
+    return false;
+  }
 }
 
 function triggerDownload(path) {
@@ -121,4 +143,28 @@ function triggerDownload(path) {
 
   const downloadUrl = `/download/${encodeURIComponent(fileName)}`;
   window.location.assign(downloadUrl);
+}
+
+function triggerDownloads(paths) {
+  const validPaths = Array.isArray(paths)
+    ? paths.map((path) => String(path || "").trim()).filter(Boolean)
+    : [];
+
+  if (!validPaths.length) {
+    statusEl.textContent = "No brochures selected.";
+    return;
+  }
+
+  validPaths.forEach((fileName, index) => {
+    window.setTimeout(() => {
+      const frame = document.createElement("iframe");
+      frame.hidden = true;
+      frame.src = `/download/${encodeURIComponent(fileName)}`;
+      document.body.appendChild(frame);
+
+      window.setTimeout(() => {
+        frame.remove();
+      }, 8000);
+    }, index * 500);
+  });
 }
